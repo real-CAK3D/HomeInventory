@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/tag/:path*", "destination": "/index.html" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}
