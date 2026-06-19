@@ -5,7 +5,7 @@ Family inventory app for NFC tags, shared dashboard access, profile PINs, shelf/
 The app can run two ways:
 
 - Vercel production: `/api/state` stores the shared inventory JSON in a private Supabase Storage bucket.
-- Local Nukebox fallback: `server.js` stores the shared inventory JSON in a local `Home Inventory/inventory-data.json` file.
+- Local NukeBox fallback: `server.js` stores the shared inventory JSON in a local `Home Inventory/inventory-data.json` file.
 
 ## Vercel Setup
 
@@ -34,13 +34,13 @@ https://home-inventory-37.vercel.app/tag/001
 https://home-inventory-37.vercel.app/tag/005
 ```
 
-## Local Nukebox Run
+## Local Run on NukeBox
 
 ```powershell
 .\start-nukebox.ps1
 ```
 
-The local server listens on `0.0.0.0:5173`, so phones on the same network use the Nukebox LAN address, for example:
+The local server listens on `0.0.0.0:5173`, so phones on the same network use the NukeBox LAN address, for example:
 
 ```text
 http://NUKEBOX-IP-ADDRESS:5173

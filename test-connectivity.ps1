@@ -4,7 +4,7 @@ param(
 
 $ErrorActionPreference = "Continue"
 
-Write-Host "Checking Nukebox Inventory on port $Port..."
+Write-Host "Checking Home Inventory on port $Port..."
 Write-Host ""
 
 Write-Host "Listening sockets:"
@@ -32,4 +32,4 @@ Write-Host "Tailscale: http://100.122.30.95:$Port"
 Write-Host ""
 Write-Host "If the local checks pass but the phone fails, the server is working and inbound traffic is blocked or the phone is on a different/isolated network."
 Write-Host "Run PowerShell as Administrator and execute:"
-Write-Host "New-NetFirewallRule -DisplayName `"Nukebox Inventory $Port`" -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Port -Profile Any"
+Write-Host "New-NetFirewallRule -DisplayName `"Home Inventory $Port`" -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Port -Profile Any"

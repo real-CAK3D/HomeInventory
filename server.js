@@ -85,6 +85,6 @@ createServer(async (request, response) => {
     sendJson(response, 500, { ok: false, error: error.message });
   }
 }).listen(port, host, () => {
-  console.log(`Nukebox Inventory running at http://${host}:${port}`);
+  console.log(`Home Inventory running at http://${host}:${port}`);
   console.log(`Saving inventory to ${dataFile}`);
 });

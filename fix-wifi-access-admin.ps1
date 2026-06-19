@@ -1,5 +1,5 @@
 # Run this in PowerShell as Administrator on the Nukebox.
-# It makes Nukebox Inventory reachable from phones/tablets on the same local Wi-Fi/LAN.
+# It makes Home Inventory reachable from phones/tablets on the same local Wi-Fi/LAN.
 
 param(
   [int]$Port = 5173,
@@ -24,12 +24,12 @@ try {
   Get-NetConnectionProfile | Select-Object Name, InterfaceAlias, NetworkCategory
 }
 
-Write-Host "Removing old Nukebox Inventory firewall rules..."
-Get-NetFirewallRule -DisplayName "Nukebox Inventory*" -ErrorAction SilentlyContinue | Remove-NetFirewallRule
+Write-Host "Removing old Home Inventory firewall rules..."
+Get-NetFirewallRule -DisplayName "Home Inventory*" -ErrorAction SilentlyContinue | Remove-NetFirewallRule
 
 Write-Host "Allowing inbound TCP port $Port..."
 New-NetFirewallRule `
-  -DisplayName "Nukebox Inventory $Port" `
+  -DisplayName "Home Inventory $Port" `
   -Direction Inbound `
   -Action Allow `
   -Protocol TCP `
