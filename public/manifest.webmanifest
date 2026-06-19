@@ -1,0 +1,18 @@
+{
+  "name": "Home Inventory",
+  "short_name": "Inventory",
+  "description": "Family storage, NFC tags, shelves, and locked item requests.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f6f1",
+  "theme_color": "#16766f",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
