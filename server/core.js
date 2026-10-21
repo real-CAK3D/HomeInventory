@@ -32,7 +32,10 @@ export function getStore() {
             await store.ping();
             return store;
           } catch (error) {
-            failures.push(`${name} (${key.trim().slice(0, 8)}…): ${String(error.message).slice(0, 120)}`);
+            // Old-style keys name their project inside (not secret), which shows a key copied from the wrong project.
+            let from = '';
+            try { from = ` from project ${JSON.parse(Buffer.from(key.trim().split('.')[1], 'base64url').toString()).ref}`; } catch { /* sb_ keys */ }
+            failures.push(`${name} (${key.trim().slice(0, 9)}…${from}): ${String(error.message).slice(0, 90)}`);
           }
         }
         storePromise = null; // try again on the next request once the keys are fixed
