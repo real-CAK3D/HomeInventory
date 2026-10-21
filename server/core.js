@@ -22,8 +22,22 @@ export function getStore() {
   if (!storePromise) {
     storePromise = (async () => {
       const url = process.env.SUPABASE_URL;
-      const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
-      if (url && key) return createSupabaseStore({ url, key, bucket: process.env.HOME_INVENTORY_BUCKET || 'home-inventory' });
+      const candidates = [['SUPABASE_SERVICE_ROLE_KEY', process.env.SUPABASE_SERVICE_ROLE_KEY], ['SUPABASE_SECRET_KEY', process.env.SUPABASE_SECRET_KEY]].filter(([, v]) => v);
+      if (url && candidates.length) {
+        // Use the first key the database accepts, so a stale leftover variable can't break the app.
+        const failures = [];
+        for (const [name, key] of candidates) {
+          const store = createSupabaseStore({ url, key: key.trim(), bucket: process.env.HOME_INVENTORY_BUCKET || 'home-inventory' });
+          try {
+            await store.ping();
+            return store;
+          } catch (error) {
+            failures.push(`${name} (${key.trim().slice(0, 8)}…): ${String(error.message).slice(0, 120)}`);
+          }
+        }
+        storePromise = null; // try again on the next request once the keys are fixed
+        throw new Error(`Database rejected every key for ${url}. ${failures.join(' | ')}`);
+      }
       if (process.env.VERCEL) throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are not set on this deployment.');
       const here = path.dirname(fileURLToPath(import.meta.url));
       const base = process.env.HOME_INVENTORY_DIR || path.join(here, '..', 'Home Inventory');

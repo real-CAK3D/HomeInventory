@@ -5,7 +5,9 @@ const PAGE = 1000;
 
 export function createSupabaseStore({ url, key, bucket = 'home-inventory', table = 'hi_records' }) {
   const base = url.replace(/\/$/, '');
-  const headers = (extra = {}) => ({ apikey: key, Authorization: `Bearer ${key}`, ...extra });
+  // Older keys are JWTs (eyJ…) and also go in Authorization; newer sb_secret_… keys only go in apikey.
+  const isJwt = key.startsWith('eyJ');
+  const headers = (extra = {}) => ({ apikey: key, ...(isJwt ? { Authorization: `Bearer ${key}` } : {}), ...extra });
 
   async function rest(path, init = {}) {
     const response = await fetch(`${base}/rest/v1/${path}`, { ...init, headers: headers(init.headers) });
