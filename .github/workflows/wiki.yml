@@ -1,0 +1,31 @@
+name: Publish wiki
+
+# Copies docs/wiki/*.md into the GitHub wiki. The wiki must have one page created
+# in the browser first (GitHub only makes the wiki repository after that).
+on:
+  push:
+    branches: [main]
+    paths: ["docs/wiki/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Push pages to the wiki
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki || { echo "::error::Open the repo's Wiki tab and click 'Create the first page' once, then re-run this workflow."; exit 1; }
+          cp docs/wiki/*.md wiki/
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && echo "Wiki already up to date" && exit 0
+          git commit -m "Update wiki from docs/wiki (${GITHUB_SHA::7})"
+          git push

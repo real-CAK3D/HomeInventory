@@ -1,0 +1,65 @@
+// A Trusted Web Activity: the app opens the Home Inventory site full-screen inside Chrome,
+// so NFC writing, the camera, notifications, offline mode and sign-in all work exactly like the site.
+plugins {
+    id 'com.android.application'
+}
+
+def appHost = System.getenv('APP_HOST') ?: 'home-inventory-37.vercel.app'
+def versionNameEnv = (System.getenv('APP_VERSION') ?: '2.0.0').replaceFirst(/^v/, '')
+def parts = versionNameEnv.tokenize('.-').findAll { it.isInteger() }.collect { it.toInteger() } + [0, 0, 0]
+// Manual runs from a branch have no version number; Android needs a code of at least 1.
+def computedCode = Math.max(1, parts[0] * 10000 + parts[1] * 100 + parts[2])
+
+android {
+    namespace 'com.cak3d.homeinventory'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.cak3d.homeinventory'
+        minSdk 24
+        targetSdk 35
+        versionCode computedCode
+        versionName versionNameEnv
+
+        manifestPlaceholders = [
+            hostName: appHost,
+            defaultUrl: "https://${appHost}/",
+            launcherName: 'Inventory'
+        ]
+        // Ties the app to the website (pairs with /.well-known/assetlinks.json served by the site).
+        resValue 'string', 'asset_statements', '[{ \\"relation\\": [\\"delegate_permission/common.handle_all_urls\\"], \\"target\\": {\\"namespace\\": \\"web\\", \\"site\\": \\"https://' + appHost + '\\"}}]'
+    }
+
+    signingConfigs {
+        release {
+            def ksPath = System.getenv('KS_PATH')
+            if (ksPath) {
+                storeFile file(ksPath)
+                storePassword System.getenv('KS_PASS')
+                keyAlias System.getenv('KS_ALIAS') ?: 'upload'
+                keyPassword System.getenv('KS_KEY_PASS') ?: System.getenv('KS_PASS')
+                storeType ksPath.endsWith('.p12') ? 'pkcs12' : 'jks'
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (System.getenv('KS_PATH')) signingConfig signingConfigs.release
+        }
+    }
+
+    buildFeatures {
+        resValues true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}

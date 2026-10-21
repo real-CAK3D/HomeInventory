@@ -1,0 +1,88 @@
+name: Release
+
+# Push a tag like v2.0.0 to build the Android app and publish a GitHub release.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  android:
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      APP_HOST: ${{ vars.APP_HOST || 'home-inventory-37.vercel.app' }}
+      APP_VERSION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+      # ubuntu-latest ships the Android SDK (ANDROID_HOME); Gradle fetches any missing platform.
+
+      - name: Build the app
+        working-directory: android
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            export KS_PATH="$RUNNER_TEMP/release.p12"
+            echo "$KS_B64" | base64 -d > "$KS_PATH"
+            gradle assembleRelease bundleRelease --no-daemon
+            cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/app.apk"
+            cp app/build/outputs/bundle/release/app-release.aab "$RUNNER_TEMP/app.aab"
+            echo "### Android signing fingerprint" >> "$GITHUB_STEP_SUMMARY"
+            echo "Put this in the Vercel env var ANDROID_CERT_SHA256 so the app opens full-screen:" >> "$GITHUB_STEP_SUMMARY"
+            keytool -list -v -keystore "$KS_PATH" -storetype pkcs12 -storepass "$KS_PASS" | grep -m1 "SHA256:" | sed 's/.*SHA256: //' | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::No signing key in repo secrets; building a debug APK instead (it installs fine, but shows a small address bar)."
+            gradle assembleDebug --no-daemon
+            cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/app.apk"
+            echo "### Debug build" >> "$GITHUB_STEP_SUMMARY"
+            keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -m1 "SHA256:" | sed 's/.*SHA256: //' | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Collect files
+        run: |
+          NAME="${GITHUB_REF_NAME:-manual}"
+          mkdir -p out
+          cp "$RUNNER_TEMP/app.apk" "out/HomeInventory-$NAME.apk"
+          if [ -f "$RUNNER_TEMP/app.aab" ]; then cp "$RUNNER_TEMP/app.aab" "out/HomeInventory-$NAME.aab"; fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: home-inventory-android
+          path: out/*
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/*
+          generate_release_notes: true
+          body: |
+            ## Three ways to use it — same sign-in, same data everywhere
+
+            **1. Android app** — on your phone, download **HomeInventory-${{ github.ref_name }}.apk** below and open it. If Android asks, allow your browser to install apps. Tapping a shelf's NFC tag opens straight into the app.
+
+            **2. Install from the browser** — open https://${{ env.APP_HOST }}/ in Chrome, tap ⋮ → **Add to Home screen** (or **Install app**). On iPhone: Safari → Share → **Add to Home Screen**.
+
+            **3. Just the website** — open https://${{ env.APP_HOST }}/ on any phone, tablet or computer.
+
+            Everything syncs through the same family account. Pick your face, type your PIN, and you stay signed in. See the [wiki](https://github.com/${{ github.repository }}/wiki) for the full guide.

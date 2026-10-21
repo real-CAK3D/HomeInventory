@@ -1,18 +1,24 @@
 {
+  "id": "/",
   "name": "Home Inventory",
   "short_name": "Inventory",
-  "description": "Family storage, NFC tags, shelves, and locked item requests.",
+  "description": "Find anything in the family's shelves and boxes. Photos, NFC tags, locks and approvals.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f5f6f1",
-  "theme_color": "#16766f",
+  "orientation": "portrait",
+  "background_color": "#f7f2ea",
+  "theme_color": "#f7f2ea",
+  "categories": ["lifestyle", "productivity"],
   "icons": [
-    {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Find something", "url": "/", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Pack a box", "url": "/add", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "The shelves", "url": "/wall", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
   ]
 }
