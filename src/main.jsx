@@ -19,6 +19,7 @@ import Me, { People, Activity, Trash } from './screens/Me.jsx';
 import Setup from './screens/Setup.jsx';
 import Tags, { Labels } from './screens/Tags.jsx';
 import Help from './screens/Help.jsx';
+import Recheck from './screens/Recheck.jsx';
 
 const NAV = [
   ['find', '/', 'search', 'Find'],
@@ -57,6 +58,7 @@ function Screen({ route }) {
     case 'tags': return <Tags />;
     case 'labels': return <Labels query={route.query} />;
     case 'help': return <Help />;
+    case 'recheck': return <Recheck query={route.query} />;
     default: return <Find />;
   }
 }
@@ -77,7 +79,7 @@ function Shell() {
     }
   }), []);
 
-  const tab = { find: 'find', wall: 'wall', section: 'wall', box: 'wall', item: 'find', add: 'add', alerts: 'alerts', me: 'me', people: 'me', activity: 'me', trash: 'me', setup: 'me', tags: 'me', labels: 'me', help: 'me' }[route.name] || 'find';
+  const tab = { find: 'find', wall: 'wall', section: 'wall', recheck: 'wall', box: 'wall', item: 'find', add: 'add', alerts: 'alerts', me: 'me', people: 'me', activity: 'me', trash: 'me', setup: 'me', tags: 'me', labels: 'me', help: 'me' }[route.name] || 'find';
   const badge = ix.requestsToMe.length + ix.notifications.filter((n) => !n.data.read && !n.data.requestId).length;
   const hideNav = route.name === 'add' || route.name === 'labels';
 

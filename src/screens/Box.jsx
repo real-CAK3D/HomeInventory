@@ -6,7 +6,7 @@ import { Avatar, Btn, Empty, Icon, Page, PhotoStrip, Sheet, Stepper, Toggle, Tra
 import { CategoryChooser, MoveShelfSheet, OwnerChooser } from '../ui/pickers.jsx';
 import { ItemRow } from './Find.jsx';
 import { buzz, chime, cx, parseItemLine } from '../lib/util.js';
-import { BOX_COLORS, FAMILY, boxLabel } from '../../shared/model.js';
+import { BOX_COLORS, CONTAINERS, FAMILY, boxLabel, containerName } from '../../shared/model.js';
 
 export default function Box({ params }) {
   const ix = useIndex();
@@ -46,7 +46,7 @@ export default function Box({ params }) {
     const lines = text.split(/\n|,(?![^(]*\))/).map(parseItemLine).filter(Boolean);
     if (!lines.length) return;
     lines.forEach((line, i) => {
-      const opts = i > 0 ? { quiet: true } : lines.length > 1 ? { message: `Added ${lines.length} things to Box ${d.number}`, undo: false } : {};
+      const opts = i > 0 ? { quiet: true } : lines.length > 1 ? { message: `Added ${lines.length} things to ${containerName(d)}`, undo: false } : {};
       mutate({ type: 'create', kind: 'item', data: { name: line.name, qty: line.qty, boxId: box.id, ownerId: d.ownerId || ix.me, categoryId: d.categoryId || '', status: 'stored', photoIds: [] } }, opts);
     });
     setAdding('');
@@ -55,7 +55,7 @@ export default function Box({ params }) {
   };
   const remove = async () => {
     const choice = await ask({
-      title: `Remove Box ${d.number}?`,
+      title: `Remove ${containerName(d)}?`,
       body: items.length ? `It has ${items.length} thing${items.length === 1 ? '' : 's'} inside.` : 'It’s empty.',
       choices: items.length ? [['all', 'Remove the box and everything in it', 'danger'], ['keep', 'Remove the box, keep the things on the shelf', 'soft']] : [['all', 'Remove it', 'danger']]
     });
@@ -72,7 +72,7 @@ export default function Box({ params }) {
         <div className="boxFace">
           <span className="marker">{d.number}</span>
           <div className="boxFaceText">
-            <h1>{d.name || `Box ${d.number}`}</h1>
+            <h1>{d.name || containerName(d)}</h1>
             <p>{total} thing{total === 1 ? '' : 's'} inside{d.categoryId && ` · ${ix.categoryById.get(d.categoryId)?.emoji || ''} ${ix.categoryById.get(d.categoryId)?.name || ''}`}</p>
           </div>
           <div className="boxBadges">
@@ -131,9 +131,9 @@ export default function Box({ params }) {
         <OwnerChooser value={d.ownerId} onChange={(ownerId) => update({ ownerId })} />
       </section>
 
-      <div className="dangerZone"><Btn kind="dangerGhost" icon="trash" onClick={remove}>Remove this box</Btn></div>
+      <div className="dangerZone"><Btn kind="dangerGhost" icon="trash" onClick={remove}>Remove {containerName(d)}</Btn></div>
 
-      <MoveShelfSheet open={moving} onClose={() => setMoving(false)} title={`Move Box ${d.number} to…`} current={{ sectionId: d.sectionId, levelId: d.levelId }}
+      <MoveShelfSheet open={moving} onClose={() => setMoving(false)} title={`Move ${containerName(d)} to…`} current={{ sectionId: d.sectionId, levelId: d.levelId }}
         onPick={(w) => { update(w); burst(); }} />
       <BoxEditor open={editing} onClose={() => setEditing(false)} box={box} />
     </Page>
@@ -147,13 +147,15 @@ export function BoxEditor({ open, onClose, box }) {
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   const save = () => {
     const patch = {};
-    for (const k of ['name', 'number', 'color', 'categoryId', 'notes']) if (form[k] !== d[k]) patch[k] = typeof form[k] === 'string' ? form[k].trim() : form[k];
+    for (const k of ['name', 'number', 'container', 'color', 'categoryId', 'notes']) if (form[k] !== d[k]) patch[k] = typeof form[k] === 'string' ? form[k].trim() : form[k];
     if (Object.keys(patch).length) mutate({ type: 'update', kind: 'box', id: box.id, data: patch }, { message: `${boxLabel({ data: { ...d, ...patch } })} saved` });
     onClose();
   };
   return (
-    <Sheet open={open} onClose={onClose} title={`Edit Box ${d.number}`} tall>
-      <label className="fieldLabel">Box number</label>
+    <Sheet open={open} onClose={onClose} title={`Edit ${containerName(d)}`} tall>
+      <p className="fieldLabel">What is it?</p>
+      <div className="catChips wrap">{CONTAINERS.map((t) => <button key={t} type="button" className={cx('catChip', (form.container || 'Box') === t && 'on')} onClick={() => set({ container: t })}>{t}</button>)}</div>
+      <label className="fieldLabel">Number</label>
       <Stepper value={Number(form.number) || 1} onChange={(number) => set({ number })} />
       <label className="fieldLabel">Name on the box (optional)</label>
       <input className="field" value={form.name || ''} onChange={(e) => set({ name: e.target.value })} placeholder="Kitchen — fragile" />

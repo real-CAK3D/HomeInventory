@@ -362,6 +362,7 @@ export async function handleMutate(req, res) {
       }
       if (!['create', 'update', 'delete', 'restore'].includes(op.type)) throw new Error('Unknown op');
       if (!op.id) op.id = `${KIND_PREFIX[op.kind] || op.kind}_${op.opId}`;
+      op.announce = op.kind === 'section' && op.announce?.levelId ? { levelId: String(op.announce.levelId).slice(0, 80), reorganized: Boolean(op.announce.reorganized) } : undefined;
       if (!ID_RE.test(op.id)) throw new Error('Bad id');
       const records = await loadContext(store, [op], actor);
       if (op.type === 'create' && records.has(op.id)) {
@@ -389,9 +390,18 @@ export async function handleMutate(req, res) {
       }
 
       const { saved } = await applyOp(store, op, records, actor);
+      let notifyIds = verdict.notify;
+      let noteText = summary;
+      if (op.kind === 'section' && op.announce?.levelId) {
+        // New shelf photo: tell everyone who keeps things on that shelf.
+        const onShelf = [...await store.listKind('box'), ...await store.listKind('item')].filter((r) => !r.data.deletedAt && !r.data.boxId
+          && r.data.sectionId === op.id && r.data.levelId === op.announce.levelId);
+        notifyIds = [...notifyIds, ...onShelf.map((r) => ownerOf(r))];
+        if (op.announce.reorganized) noteText = `${summary} — check where your things ended up`;
+      }
       const extra = await store.put([
         activityRow(op.opId, actor, op, summary, new Map([...records, ...saved.map((r) => [r.id, r])])),
-        ...notificationRows(op.opId, actor, verdict.notify, summary, op)
+        ...notificationRows(op.opId, actor, notifyIds, noteText, op)
       ]);
       const all = new Map([...records, ...saved.map((r) => [r.id, r])]);
       results.push({ opId: op.opId, status: 'applied', records: [...saved, ...extra].map((r) => viewFor(r, actor.id, all)).filter(Boolean) });

@@ -98,3 +98,13 @@ test('locks, approvals, privacy, notifications', async () => {
   const later = (await call('andrew', 'GET', `/api/sync?since=${encodeURIComponent(cursor)}`)).json;
   assert.equal(later.full, false);
 });
+
+test('new shelf photo tells everyone with things on that shelf', async () => {
+  const [r] = await mutate('andrew', op({ type: 'update', kind: 'section', id: 'sec_1', data: { levels: [{ id: 'l1', name: 'Top shelf', photoId: 'ph_new', photoHistory: [{ photoId: 'ph_old' }] }] }, announce: { levelId: 'l1', reorganized: true } }));
+  assert.equal(r.status, 'applied');
+  const vSync = (await call('victoria', 'GET', '/api/sync')).json.records;
+  assert.ok(vSync.some((n) => n.kind === 'notification' && /rearranged Section 1 · Top shelf/.test(n.data?.text || '') && /check where/.test(n.data.text)));
+  // Moving a locked box during the check still asks its owner.
+  const [mv] = await mutate('andrew', op({ type: 'update', kind: 'box', id: 'box_v', data: { levelId: 'l1', sectionId: 'sec_1', spot: 'left' } }));
+  assert.equal(mv.status, 'pending');
+});

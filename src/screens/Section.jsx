@@ -4,6 +4,7 @@ import { mutate, useIndex } from '../lib/store.js';
 import { back, navigate } from '../lib/router.js';
 import { BoxTile, Btn, CameraButton, Empty, Icon, Page, PhotoImg, Sheet, ask, openViewer } from '../ui/kit.jsx';
 import { ItemRow } from './Find.jsx';
+import { setShelfPhoto } from '../lib/shelves.js';
 import { cx, timeAgo } from '../lib/util.js';
 import { FAMILY, newId, sectionLabel } from '../../shared/model.js';
 
@@ -24,7 +25,7 @@ export default function Section({ params }) {
   }
   const d = section.data;
   const levels = d.levels || [];
-  const setLevelPhoto = (levelId, photoId) => mutate({ type: 'update', kind: 'section', id: section.id, data: { levels: levels.map((l) => (l.id === levelId ? { ...l, photoId } : l)) } }, { message: 'Shelf photo saved' });
+  const setLevelPhoto = (levelId, photoId) => setShelfPhoto(section, levelId, photoId);
   const boxCount = levels.reduce((n, l) => n + (ix.boxesByShelf.get(`${section.id}|${l.id}`) || []).length, 0);
 
   return (
@@ -53,7 +54,10 @@ export default function Section({ params }) {
               <span className="levelNum">{i + 1}</span>
               <h2>{level.name}</h2>
               {level.photoId ? (
-                <button className="levelPhoto" onClick={() => openViewer([level.photoId])}><PhotoImg id={level.photoId} /></button>
+                <button className="levelPhoto" onClick={() => openViewer([level.photoId, ...(level.photoHistory || []).map((h) => h.photoId)])} aria-label="See shelf photos">
+                  <PhotoImg id={level.photoId} />
+                  {level.photoHistory?.length > 0 && <span className="historyCount">{level.photoHistory.length + 1}</span>}
+                </button>
               ) : (
                 <CameraButton className="mini" label="Photo" onPhoto={(id) => setLevelPhoto(level.id, id)} />
               )}
@@ -67,8 +71,14 @@ export default function Section({ params }) {
             {loose.length > 0 && <div className="looseList"><p className="fieldLabel">Not in a box</p>{loose.map((item) => <ItemRow key={item.id} ix={ix} item={item} />)}</div>}
             <div className="levelFoot">
               <button className="linkBtn" onClick={() => navigate(`/add?mode=item&s=${section.id}&l=${level.id}`)}><Icon name="plus" size={18} /> Add a loose thing</button>
-              {level.photoId && <CameraButton className="linkBtn" label="New photo" onPhoto={(id) => setLevelPhoto(level.id, id)} />}
+              {level.photoId && <CameraButton className="linkBtn" label="Update photo" onPhoto={(id) => setLevelPhoto(level.id, id)} />}
             </div>
+            {level.photoId && (
+              <div className="levelMeta">
+                <small className="muted">Photo {level.photoAt ? `${timeAgo(level.photoAt)}${level.photoBy ? ` by ${ix.nameOf(level.photoBy)}` : ''}` : 'saved'}</small>
+                {(boxes.length + loose.length) > 0 && <button className="linkBtn" onClick={() => navigate(`/recheck?s=${section.id}&l=${level.id}`)}><Icon name="check" size={16} /> Check this shelf</button>}
+              </div>
+            )}
           </motion.section>
         );
       })}

@@ -4,8 +4,9 @@ import { getIndex, mutate, useIndex } from '../lib/store.js';
 import { back, navigate } from '../lib/router.js';
 import { BoxTile, Btn, CameraButton, Icon, PhotoImg, PhotoStrip, Stepper, burst, openViewer } from '../ui/kit.jsx';
 import { CategoryChooser, MoveItemSheet, OwnerChooser, ShelfChooser } from '../ui/pickers.jsx';
-import { buzz, chime, cx, parseItemLine } from '../lib/util.js';
-import { BOX_COLORS, newId, sectionLabel, levelLabel } from '../../shared/model.js';
+import { buzz, chime, cx, parseItemLine, timeAgo } from '../lib/util.js';
+import { BOX_COLORS, CONTAINERS, newId, sectionLabel, levelLabel } from '../../shared/model.js';
+import { setShelfPhoto } from '../lib/shelves.js';
 
 const STEPS = ['where', 'shelf', 'box', 'inside', 'done'];
 const nextFreeNumber = (ix) => { let n = 1; while (ix.boxByNumber.has(n)) n += 1; return n; };
@@ -19,7 +20,7 @@ function PackFlow({ query }) {
   const ix = useIndex();
   const [step, setStep] = useState(query.s && query.l ? 'shelf' : 'where');
   const [where, setWhere] = useState({ sectionId: query.s || '', levelId: query.l || '' });
-  const blankBox = () => ({ id: newId('box'), number: Number(query.n) || nextFreeNumber(getIndex()), name: '', color: BOX_COLORS[Math.floor(Math.random() * BOX_COLORS.length)], ownerId: ix.me, categoryId: '', photoIds: [], contentPhotoIds: [] });
+  const blankBox = () => ({ id: newId('box'), number: Number(query.n) || nextFreeNumber(getIndex()), container: 'Box', name: '', color: BOX_COLORS[Math.floor(Math.random() * BOX_COLORS.length)], ownerId: ix.me, categoryId: '', photoIds: [], contentPhotoIds: [] });
   const [box, setBox] = useState(blankBox);
   const [created, setCreated] = useState(false);
   const [list, setList] = useState('');
@@ -36,7 +37,7 @@ function PackFlow({ query }) {
       mutate({ type: 'create', kind: 'box', id: box.id, data: { ...box, sectionId: where.sectionId, levelId: where.levelId, locked: false, private: false } }, { quiet: true });
       setCreated(true);
     } else {
-      mutate({ type: 'update', kind: 'box', id: box.id, data: { number: box.number, name: box.name, color: box.color, ownerId: box.ownerId, categoryId: box.categoryId, photoIds: box.photoIds } }, { quiet: true });
+      mutate({ type: 'update', kind: 'box', id: box.id, data: { number: box.number, container: box.container, name: box.name, color: box.color, ownerId: box.ownerId, categoryId: box.categoryId, photoIds: box.photoIds } }, { quiet: true });
     }
     go('inside');
   };
@@ -51,13 +52,13 @@ function PackFlow({ query }) {
   };
 
   const nextBox = (sameShelf) => {
-    setBox({ ...blankBox(), number: nextFreeNumber(getIndex()), ownerId: box.ownerId, categoryId: '' });
+    setBox({ ...blankBox(), number: nextFreeNumber(getIndex()), container: box.container, ownerId: box.ownerId, categoryId: '' });
     setCreated(false);
     setList('');
     go(sameShelf ? 'box' : 'where');
   };
 
-  const setLevelPhoto = (photoId) => mutate({ type: 'update', kind: 'section', id: section.id, data: { levels: section.data.levels.map((l) => (l.id === level.id ? { ...l, photoId } : l)) } }, { message: 'Shelf photo saved', undo: false });
+  const setLevelPhoto = (photoId) => setShelfPhoto(section, level.id, photoId, { returnTo: `/add?s=${section.id}&l=${level.id}` });
 
   return (
     <main className="page capturePage">
@@ -88,27 +89,31 @@ function PackFlow({ query }) {
                   <CameraButton label="Whole section" onPhoto={(photoId) => mutate({ type: 'update', kind: 'section', id: section.id, data: { photoId } }, { message: 'Section photo saved', undo: false })} />
                 </div>
               )}
-              <h1>Snap the shelf</h1>
-              <p className="lead">A quick photo of <strong>{level.name}</strong> helps everyone spot the right box later.</p>
+              <h1>{level.photoId ? 'Does the shelf still look like this?' : 'Snap the shelf'}</h1>
+              <p className="lead">{level.photoId
+                ? <>{ix.nameOf(level.photoBy) !== 'Someone' ? `${ix.nameOf(level.photoBy)} took this` : 'This was taken'} {timeAgo(level.photoAt) || 'earlier'}. If it still matches, skip ahead. If things changed, update it.</>
+                : <>A quick photo of <strong>{level.name}</strong> helps everyone spot the right box later.</>}</p>
               {level.photoId ? (
-                <div className="bigPhoto" onClick={() => openViewer([level.photoId])}><PhotoImg id={level.photoId} size="f" /><span className="photoTag"><Icon name="check" size={18} /> Already has a photo</span></div>
+                <div className="bigPhoto" onClick={() => openViewer([level.photoId])}><PhotoImg id={level.photoId} size="f" /><span className="photoTag"><Icon name="check" size={18} /> Shelf photo on file</span></div>
               ) : (
                 <CameraButton big className="bigCamera" label="Take shelf photo" onPhoto={setLevelPhoto} />
               )}
               <div className="captureFoot">
-                {level.photoId && <CameraButton className="btn soft" label="Retake" onPhoto={setLevelPhoto} />}
-                <Btn big kind="primary" icon="chevron" onClick={() => go('box')}>{level.photoId ? 'Next' : 'Skip for now'}</Btn>
+                {level.photoId && <CameraButton className="btn soft big" label="Shelf changed? Update photo" onPhoto={setLevelPhoto} />}
+                <Btn big kind="primary" icon="chevron" onClick={() => go('box')}>{level.photoId ? 'Looks the same — next' : 'Skip for now'}</Btn>
               </div>
             </>
           )}
 
           {step === 'box' && (
             <>
-              <h1>The box</h1>
+              <h1>The {box.container.toLowerCase()}</h1>
+              <p className="fieldLabel">What is it?</p>
+              <div className="catChips wrap">{CONTAINERS.map((t) => <button key={t} type="button" className={cx('catChip', box.container === t && 'on')} onClick={() => { buzz(8); setBox({ ...box, container: t }); }}>{t}</button>)}</div>
               <div className="boxPreview"><BoxTile box={{ data: box }} size="lg" count={0} /></div>
-              <label className="fieldLabel">Box number — write this on the box</label>
+              <label className="fieldLabel">{box.container} number — write this on it</label>
               <Stepper value={box.number} onChange={(number) => setBox({ ...box, number })} />
-              {ix.boxByNumber.get(box.number) && ix.boxByNumber.get(box.number).id !== box.id && <p className="warn"><Icon name="close" size={16} /> Box {box.number} already exists — we’ll use the next free number.</p>}
+              {ix.boxByNumber.get(box.number) && ix.boxByNumber.get(box.number).id !== box.id && <p className="warn"><Icon name="close" size={16} /> Number {box.number} is already used — we’ll use the next free one.</p>}
               <label className="fieldLabel">What’s written on it? (optional)</label>
               <input className="field big" value={box.name} onChange={(e) => setBox({ ...box, name: e.target.value })} placeholder="Kitchen, Christmas, Mom’s books…" />
               <p className="fieldLabel">Color</p>
@@ -125,7 +130,7 @@ function PackFlow({ query }) {
 
           {step === 'inside' && (
             <>
-              <h1>What’s inside Box {box.number}?</h1>
+              <h1>What’s inside {box.container} {box.number}?</h1>
               <p className="lead">Open it up and snap a photo — that alone is a big help. Then list the main things.</p>
               <PhotoStrip ids={box.contentPhotoIds} addLabel="Snap inside" onAdd={(id) => setBox((b) => ({ ...b, contentPhotoIds: [...b.contentPhotoIds, id] }))} onRemove={(id) => setBox((b) => ({ ...b, contentPhotoIds: b.contentPhotoIds.filter((x) => x !== id) }))} />
               <label className="fieldLabel">One thing per line (or commas)</label>
@@ -140,13 +145,13 @@ function PackFlow({ query }) {
           {step === 'done' && (
             <>
               <motion.div className="doneBadge" initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 12 }}><Icon name="check" size={56} stroke={3} /></motion.div>
-              <h1 className="center">Box {box.number} is in!</h1>
-              <p className="lead center">{packed.length > 1 ? `${packed.length} boxes packed this round. ` : ''}Write <strong>{box.number}</strong> big on the box so it matches.</p>
+              <h1 className="center">{box.container} {box.number} is in!</h1>
+              <p className="lead center">{packed.length > 1 ? `${packed.length} boxes packed this round. ` : ''}Write <strong>{box.number}</strong> big on it so it matches.</p>
               <div className="packedRow">{packed.map((b) => <BoxTile key={b.id} box={{ data: b }} size="sm" count={b.count} />)}</div>
               <div className="stackBtns">
-                <Btn big kind="primary" icon="plus" onClick={() => nextBox(true)}>Next box on this shelf</Btn>
-                <Btn big kind="soft" icon="move" onClick={() => nextBox(false)}>Next box, different shelf</Btn>
-                <Btn big kind="ghost" icon="box" onClick={() => navigate(`/b/${box.number}`)}>Open Box {box.number}</Btn>
+                <Btn big kind="primary" icon="plus" onClick={() => nextBox(true)}>Next one on this shelf</Btn>
+                <Btn big kind="soft" icon="move" onClick={() => nextBox(false)}>Next one, different shelf</Btn>
+                <Btn big kind="ghost" icon="box" onClick={() => navigate(`/b/${box.number}`)}>Open {box.container} {box.number}</Btn>
               </div>
             </>
           )}

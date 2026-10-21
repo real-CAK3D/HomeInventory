@@ -19,6 +19,14 @@ export const SPOTS = [
   ['front', 'Front'], ['back', 'Back'], ['top', 'Stacked on top']
 ];
 
+export const CONTAINERS = ['Box', 'Bin', 'Tote', 'Crate', 'Bag', 'Basket', 'Case', 'Drawer', 'Suitcase'];
+
+/** "Bin 12" — the container type plus its number. */
+export function containerName(box) {
+  const d = box?.data || box || {};
+  return `${d.container || 'Box'} ${d.number ?? ''}`.trim();
+}
+
 export const BOX_COLORS = ['#c8955a', '#e07a5f', '#3d85c6', '#81b29a', '#f2cc8f', '#9b72cf', '#e56b9f', '#5bc0be', '#8d99ae', '#f4a261'];
 
 export const PEOPLE_COLORS = ['#ff7a59', '#4f9dff', '#b07cff', '#2ec4a6', '#ffb347', '#ff5c8a', '#7bd389', '#5b8def'];
@@ -57,7 +65,7 @@ export function levelLabel(section, levelId) {
 export function boxLabel(box) {
   if (!box) return 'a box';
   const d = box.data || box;
-  return d.name?.trim() ? `Box ${d.number} (${d.name})` : `Box ${d.number}`;
+  return d.name?.trim() ? `${containerName(d)} (${d.name})` : containerName(d);
 }
 
 export function thingLabel(rec) {
@@ -187,6 +195,10 @@ function opPhrase(op, records) {
     if (op.kind === 'box') return [['added', 'add'], `${boxLabel(patch)} to ${whereText(patch, records)}`];
     return [['added', 'add'], name];
   }
+  if (op.kind === 'section' && op.type === 'update' && op.announce?.levelId) {
+    const shelf = `${name} · ${levelLabel(current, op.announce.levelId)}`;
+    return op.announce.reorganized ? [['rearranged', 'rearrange'], `${shelf} (new photo, things moved around)`] : [['took a new photo of', 'take a new photo of'], shelf];
+  }
   if (op.type === 'delete') return [['removed', 'remove'], name];
   if (op.type === 'restore') return [['brought back', 'bring back'], name];
   if (patch.status === 'out') return [['took out', 'take out'], `${name}${patch.outNote ? ` (“${patch.outNote}”)` : ''}`];
@@ -195,6 +207,7 @@ function opPhrase(op, records) {
     return [['moved', 'move'], `${name} to ${whereText({ ...(current?.data || {}), ...patch }, records)}`];
   }
   if ('locked' in patch) return [patch.locked ? ['locked', 'lock'] : ['unlocked', 'unlock'], name];
+  if ('container' in patch && current) return [['turned', 'turn'], `${thingLabel(current)} into a ${patch.container.toLowerCase()}`];
   if ('ownerId' in patch) {
     const who = patch.ownerId === FAMILY ? 'the whole family' : records.get(patch.ownerId)?.data?.name || 'someone';
     return [['gave', 'give'], `${name} to ${who}`];

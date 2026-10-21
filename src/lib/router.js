@@ -48,7 +48,7 @@ export function matchRoute(path) {
   if (a === 'b' || a === 'box') return { name: 'box', params: { number: Number(String(b).replace(/\D/g, '')) }, query };
   if (a === 'i') return { name: 'item', params: { id: b }, query };
   if (a === 'tag') return { name: 'box', params: { number: Number(String(b).replace(/\D/g, '')) }, query };
-  const simple = ['wall', 'add', 'alerts', 'me', 'tags', 'people', 'activity', 'trash', 'setup', 'labels', 'help'];
+  const simple = ['wall', 'add', 'recheck', 'alerts', 'me', 'tags', 'people', 'activity', 'trash', 'setup', 'labels', 'help'];
   if (simple.includes(a)) return { name: a, params: { sub: b }, query };
   return { name: 'find', query };
 }

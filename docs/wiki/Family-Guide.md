@@ -39,6 +39,17 @@ Tap the big **+** in the middle.
 
 Tip: you don't have to list every fork. A photo of the inside plus the main things is plenty.
 
+## When a shelf changes
+
+Shelf photos are shared. Once anyone snaps a shelf, everyone sees that photo, and Pack mode lets the next person skip it (**Looks the same — next**).
+
+If you reorganize a shelf, or swap a box for a bin, take a new photo with **Update photo** on the section page, or **Shelf changed? Update photo** in Pack mode. The old photo is kept in the shelf's history (tap the shelf photo to swipe through them). The app then asks **Did anything on this shelf move around?**
+
+- **No:** the new photo just replaces the old one.
+- **Yes:** you get the **shelf check**. Drag across the before-and-now photo to compare. Then mark each box **Still here**, **Moved** (pick where it went), or **Gone**. Use the pencil to turn a box into a bin, tote or crate. Add anything new with **Move a box here** or **Pack a new one**.
+
+Everyone with things on that shelf gets a notice that it was rearranged. Owners of boxes that moved hear exactly where they went. Locked boxes still need their owner's OK before they move.
+
 ## Taking something out
 
 Open the thing and tap **I'm taking this out**. Add a note if you like (*"in the kitchen"*). Everyone can see it's out and who has it. When it's back, tap **I put it back**.

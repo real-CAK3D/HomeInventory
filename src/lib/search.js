@@ -38,7 +38,7 @@ function scoreText(tokens, text) {
 export function parseQuery(q) {
   const n = norm(q);
   let m;
-  if ((m = n.match(/^(?:box|bin|b|tote|number|no)\s*(\d{1,4})$/)) || (m = n.match(/^(\d{1,4})$/))) return { box: Number(m[1]) };
+  if ((m = n.match(/^(?:box|bin|b|tote|crate|bag|basket|case|drawer|suitcase|number|no)\s*(\d{1,4})$/)) || (m = n.match(/^(\d{1,4})$/))) return { box: Number(m[1]) };
   if ((m = n.match(/^(?:section|sec|s|unit|rack)\s*(\d{1,3})(?:\s*(?:shelf|level|l|row)?\s*(\d{1,2}))?$/))) return { section: Number(m[1]), level: m[2] ? Number(m[2]) : null };
   if ((m = n.match(/^(\d{1,3})\s+(\d{1,2})$/)) && q.match(/\d\s*[-/.]\s*\d/)) return { section: Number(m[1]), level: Number(m[2]) };
   return null;

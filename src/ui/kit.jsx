@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { addPhoto, cachedPhotoSrc, photoSrc, useToasts, dismissToast } from '../lib/store.js';
 import { navigate } from '../lib/router.js';
 import { buzz, cx } from '../lib/util.js';
-import { FAMILY } from '../../shared/model.js';
+import { FAMILY, containerName } from '../../shared/model.js';
 
 // ---------- icons ----------
 
@@ -173,7 +174,7 @@ export function BoxTile({ box, count = 0, ownerColor, highlight = false, dim = f
   const d = box.data;
   return (
     <motion.button layout layoutId={layoutId} type="button" className={cx('boxTile', size, highlight && 'hit', dim && 'dim', d.redacted && 'secret')} style={{ '--box': d.color || '#c8955a', '--owner': ownerColor || 'transparent' }}
-      onClick={onClick} whileTap={{ scale: 0.94 }} aria-label={d.redacted ? `Box ${d.number}, private` : `Box ${d.number}${d.name ? `, ${d.name}` : ''}, ${count} things`}>
+      onClick={onClick} whileTap={{ scale: 0.94 }} aria-label={d.redacted ? `${containerName(d)}, private` : `${containerName(d)}${d.name ? `, ${d.name}` : ''}, ${count} things`}>
       <span className="tape" />
       <span className="boxNum">{d.number}</span>
       {size !== 'xs' && <span className="boxName">{d.redacted ? 'Private' : d.name || `${count} thing${count === 1 ? '' : 's'}`}</span>}
@@ -286,7 +287,8 @@ export function Sheet({ open, onClose, title, children, tall = false }) {
     document.body.classList.add('noScroll');
     return () => { window.removeEventListener('keydown', key); document.body.classList.remove('noScroll'); };
   }, [open, onClose]);
-  return (
+  // Drawn at the top of the page so it always sits above the bottom bar.
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div className="sheetWrap" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
@@ -301,7 +303,8 @@ export function Sheet({ open, onClose, title, children, tall = false }) {
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 
